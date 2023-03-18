@@ -80,9 +80,9 @@ contract LPStaking {
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = block.number - pool.lastRewardBlock;
             uint256 reward = multiplier * rewardPerBlock * pool.allocPoint / totalAllocPoint;
-            accRewardPerShare += reward / lpSupply;
+            accRewardPerShare += reward * 1e12 / lpSupply;
         }
-        return user.amount * accRewardPerShare - user.rewardDebt;
+        return user.amount * accRewardPerShare / 1e12 - user.rewardDebt;
     }
 
     function updatePool(uint256 _pid) internal {
@@ -98,7 +98,7 @@ contract LPStaking {
         uint256 multiplier = block.number - pool.lastRewardBlock;
         uint256 reward = multiplier * rewardPerBlock * pool.allocPoint / totalAllocPoint;
         rewardToken.mint(address(this), reward);
-        pool.accRewardPerShare += reward / lpSupply;
+        pool.accRewardPerShare += reward * 1e12 / lpSupply;
         pool.lastRewardBlock = block.number;
     }
 
@@ -107,12 +107,12 @@ contract LPStaking {
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount * pool.accRewardPerShare - user.rewardDebt;
+            uint256 pending = user.amount * pool.accRewardPerShare / 1e12 - user.rewardDebt;
             rewardToken.transfer(msg.sender, pending);
         }
         pool.lpToken.transferFrom(msg.sender, address(this), _amount);
         user.amount += _amount;
-        user.rewardDebt = user.amount * pool.accRewardPerShare;
+        user.rewardDebt = user.amount * pool.accRewardPerShare / 1e12;
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -121,10 +121,10 @@ contract LPStaking {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "Withdraw: insufficient balance");
         updatePool(_pid);
-        uint256 pending = user.amount * pool.accRewardPerShare - user.rewardDebt;
+        uint256 pending = user.amount * pool.accRewardPerShare / 1e12 - user.rewardDebt;
         rewardToken.transfer(msg.sender, pending);
         user.amount -= _amount;
-        user.rewardDebt = user.amount * pool.accRewardPerShare;
+        user.rewardDebt = user.amount * pool.accRewardPerShare / 1e12;
         pool.lpToken.transfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _pid, _amount);
     }
